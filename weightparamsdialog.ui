@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>WeightParamsDialog</class>
+ <widget class="QDialog" name="WeightParamsDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>500</width>
+    <height>450</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Modify Weight Parameters</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QLabel" name="formulaLabel">
+     <property name="text">
+      <string>Formula</string>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <layout class="QFormLayout" name="formLayout">
+     <item row="0" column="0">
+      <widget class="QLabel" name="param1Label">
+       <property name="text">
+        <string>P(1)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QLineEdit" name="param1LineEdit">
+       <property name="inputMask">
+        <string/>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="param2Label">
+       <property name="text">
+        <string>P(2)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QLineEdit" name="param2LineEdit"/>
+     </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="param3Label">
+       <property name="text">
+        <string>P(3)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QLineEdit" name="param3LineEdit"/>
+     </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="param4Label">
+       <property name="text">
+        <string>P(4)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QLineEdit" name="param4LineEdit"/>
+     </item>
+     <item row="4" column="0">
+      <widget class="QLabel" name="param5Label">
+       <property name="text">
+        <string>P(5)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <widget class="QLineEdit" name="param5LineEdit"/>
+     </item>
+     <item row="5" column="0">
+      <widget class="QLabel" name="param6Label">
+       <property name="text">
+        <string>P(6)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="1">
+      <widget class="QLineEdit" name="param6LineEdit"/>
+     </item>
+     <item row="6" column="0">
+      <widget class="QLabel" name="param7Label">
+       <property name="text">
+        <string>P(7)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="1">
+      <widget class="QLineEdit" name="param7LineEdit"/>
+     </item>
+     <item row="7" column="0">
+      <widget class="QLabel" name="param8Label">
+       <property name="text">
+        <string>P(8)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="7" column="1">
+      <widget class="QLineEdit" name="param8LineEdit"/>
+     </item>
+     <item row="8" column="0">
+      <widget class="QLabel" name="param9Label">
+       <property name="text">
+        <string>P(9)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="8" column="1">
+      <widget class="QLineEdit" name="param9LineEdit"/>
+     </item>
+     <item row="9" column="0">
+      <widget class="QLabel" name="param10Label">
+       <property name="text">
+        <string>P(10)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="9" column="1">
+      <widget class="QLineEdit" name="param10LineEdit"/>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>accepted()</signal>
+   <receiver>WeightParamsDialog</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>249</x>
+     <y>419</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>249</x>
+     <y>224</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>rejected()</signal>
+   <receiver>WeightParamsDialog</receiver>
+   <slot>reject()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>249</x>
+     <y>419</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>249</x>
+     <y>224</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>
