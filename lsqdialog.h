@@ -21,6 +21,13 @@ struct LSQParameters {
     int weightingSchemeIndex;
     QVector<double> weightParameters;
     bool refineWeightParams;
+    QVector<int> numWeightParamsPerScheme;  // Number of parameters for each scheme (size 18)
+    
+    // Observations & Parameters
+    int numObservations;
+    double percentObservations;
+    int numParameters;
+    double ratio;
     
     LSQParameters()
         : refinementType(Diagonal)
@@ -30,6 +37,11 @@ struct LSQParameters {
         , weightingSchemeIndex(0)
         , weightParameters(10, 0.0)
         , refineWeightParams(false)
+        , numWeightParamsPerScheme(18, 0)
+        , numObservations(0)
+        , percentObservations(0.0)
+        , numParameters(0)
+        , ratio(0.0)
     {}
 };
 
@@ -51,6 +63,7 @@ private slots:
 private:
     Ui::LSQDialog *ui;
     QVector<double> weightParameters;
+    QVector<int> numWeightParamsPerScheme;
     bool applyPressed;
 };
 

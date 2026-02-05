@@ -13,7 +13,7 @@ class WeightParamsDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit WeightParamsDialog(const QString &formula, QWidget *parent = nullptr);
+    explicit WeightParamsDialog(const QString &formula, int numParams, QWidget *parent = nullptr);
     ~WeightParamsDialog();
 
     QVector<double> getParameters() const;

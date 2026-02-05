@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(sir_lsq_dialog VERSION 1.0 LANGUAGES CXX)
+project(sir_lsq_dialog VERSION 1.0 LANGUAGES CXX Fortran)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -22,6 +22,7 @@ set(PROJECT_SOURCES
     weightparamsdialog.cpp
     weightparamsdialog.h
     weightparamsdialog.ui
+    lsq_fortran.f90
 )
 
 add_executable(${PROJECT_NAME} ${PROJECT_SOURCES})

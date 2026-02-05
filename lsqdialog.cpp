@@ -7,6 +7,7 @@ LSQDialog::LSQDialog(QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::LSQDialog)
     , weightParameters(10, 0.0)
+    , numWeightParamsPerScheme(18, 0)
     , applyPressed(false)
 {
     ui->setupUi(this);
@@ -53,25 +54,37 @@ LSQDialog::~LSQDialog()
 
 void LSQDialog::onLSQRun()
 {
-    // Set the apply pressed flag
+    // Set the apply pressed flag and accept the dialog
     applyPressed = true;
-    
-    // Implementation for LSQ refinement procedure
-    QMessageBox::information(this, "LSQ Run", "Running Least Squares Refinement...");
+    accept();
 }
 
 void LSQDialog::onModifyWeightParameters()
 {
-    // Get the current selected formula
-    QString currentFormula = ui->weightingSchemeCombo->currentText();
+    // Get the current selected formula index
+    int currentIndex = ui->weightingSchemeCombo->currentIndex();
     
-    // Create and show the weight parameters dialog
-    WeightParamsDialog dialog(currentFormula, this);
-    dialog.setParameters(weightParameters);
-    
-    if (dialog.exec() == QDialog::Accepted) {
-        // Save the modified parameters
-        weightParameters = dialog.getParameters();
+    // Check if this scheme has parameters to modify
+    if (currentIndex >= 0 && currentIndex < numWeightParamsPerScheme.size()) {
+        int numParams = numWeightParamsPerScheme[currentIndex];
+        
+        if (numParams == 0) {
+            QMessageBox::information(this, "No Parameters", 
+                                   "This weighting scheme has no parameters to modify.");
+            return;
+        }
+        
+        // Get the current selected formula
+        QString currentFormula = ui->weightingSchemeCombo->currentText();
+        
+        // Create and show the weight parameters dialog with the correct number of params
+        WeightParamsDialog dialog(currentFormula, numParams, this);
+        dialog.setParameters(weightParameters);
+        
+        if (dialog.exec() == QDialog::Accepted) {
+            // Save the modified parameters
+            weightParameters = dialog.getParameters();
+        }
     }
 }
 
@@ -102,6 +115,14 @@ void LSQDialog::setParameters(const LSQParameters &params)
     ui->weightingSchemeCombo->setCurrentIndex(params.weightingSchemeIndex);
     weightParameters = params.weightParameters;
     ui->refineWeightCheck->setChecked(params.refineWeightParams);
+    numWeightParamsPerScheme = params.numWeightParamsPerScheme;
+    
+    // Set Observations & Parameters labels
+    ui->observationsLabel->setText(QString("Observations: %1 (%2%)")
+                                   .arg(params.numObservations)
+                                   .arg(params.percentObservations, 0, 'f', 1));
+    ui->parametersLabel->setText(QString("Parameters: %1").arg(params.numParameters));
+    ui->ratioLabel->setText(QString("Ratio: %1").arg(params.ratio, 0, 'f', 2));
 }
 
 LSQParameters LSQDialog::getParameters() const
