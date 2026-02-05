@@ -177,6 +177,46 @@
       <attribute name="title">
        <string>Modify Atoms Parameters</string>
       </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_5">
+       <item>
+        <widget class="QTableWidget" name="atomsTable">
+         <property name="sortingEnabled">
+          <bool>true</bool>
+         </property>
+         <property name="columnCount">
+          <number>5</number>
+         </property>
+         <attribute name="horizontalHeaderStretchLastSection">
+          <bool>false</bool>
+         </attribute>
+         <column>
+          <property name="text">
+           <string>Atom</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Fix XYZ</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Fix B</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Fix Occ.</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Set Isotropic</string>
+          </property>
+         </column>
+        </widget>
+       </item>
+      </layout>
      </widget>
     </widget>
    </item>

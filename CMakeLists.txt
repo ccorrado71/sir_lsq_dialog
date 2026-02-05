@@ -22,6 +22,10 @@ set(PROJECT_SOURCES
     weightparamsdialog.cpp
     weightparamsdialog.h
     weightparamsdialog.ui
+    checkboxdelegate.cpp
+    checkboxdelegate.h
+    checkboxheader.cpp
+    checkboxheader.h
     lsq_fortran.f90
 )
 

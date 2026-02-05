@@ -29,6 +29,10 @@ WeightParamsDialog::WeightParamsDialog(const QString &formula, int numParams, QW
             }
         }
     }
+    
+    // Adjust dialog size to fit content
+    adjustSize();
+    setMinimumWidth(400);
 }
 
 WeightParamsDialog::~WeightParamsDialog()

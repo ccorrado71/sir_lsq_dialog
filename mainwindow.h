@@ -15,6 +15,8 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+    
+    void openHelp(const QString &page = QString());
 
 private slots:
     void onNewProject();

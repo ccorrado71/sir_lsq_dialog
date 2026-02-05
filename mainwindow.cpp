@@ -9,12 +9,17 @@ extern "C" {
                            int* weighting_scheme, double* weight_params,
                            int* refine_weight, int* num_observations,
                            double* percent_observations, int* num_parameters,
-                           double* ratio, int* num_weight_params, int* ier);
+                           double* ratio, int* num_weight_params,
+                           double* all_weight_params, int* num_atoms, int* ier);
+    
+    void lsq_get_atoms(int num_atoms, char** atom_names, int* fix_xyz,
+                      int* fix_b, int* fix_occ, int* set_isotropic, int* ier);
     
     void lsq_execute(int refinement_type, double damping_factor,
                     int reflections_cutoff, int num_cycles,
                     int weighting_scheme, double* weight_params,
-                    int refine_weight);
+                    int refine_weight, int num_atoms, int* fix_xyz,
+                    int* fix_b, int* fix_occ, int* set_isotropic);
 }
 
 MainWindow::MainWindow(QWidget *parent)
@@ -36,6 +41,12 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+void MainWindow::openHelp(const QString &page)
+{
+    // To be implemented
+    Q_UNUSED(page);
+}
+
 void MainWindow::onNewProject()
 {
     if (lsqDialog) {
@@ -52,12 +63,14 @@ void MainWindow::onNewProject()
         int numParameters;
         double ratio;
         int numWeightParams[18];
+        double allWeightParams[18 * 10];  // 18 schemes x 10 parameters (column-major for Fortran)
+        int numAtoms;
         int ier;
         
         lsq_get_parameters(&refinementType, &dampingFactor, &reflectionsCutoff,
                           &numCycles, &weightingScheme, weightParams, &refineWeight,
                           &numObservations, &percentObservations, &numParameters,
-                          &ratio, numWeightParams, &ier);
+                          &ratio, numWeightParams, allWeightParams, &numAtoms, &ier);
         
         // Check for errors from Fortran
         if (ier != 0) {
@@ -85,6 +98,41 @@ void MainWindow::onNewProject()
             params.numWeightParamsPerScheme[i] = numWeightParams[i];
         }
         
+        // Copy all weight parameters from Fortran (column-major) to QVector
+        for (int scheme = 0; scheme < 18; ++scheme) {
+            for (int param = 0; param < 10; ++param) {
+                // Fortran stores as column-major: (param, scheme)
+                params.allWeightParams[scheme][param] = allWeightParams[param + scheme * 10];
+            }
+        }
+        
+        params.numAtoms = numAtoms;
+        
+        // Get atom data from Fortran
+        if (numAtoms > 0) {
+            char* atomNames[numAtoms];
+            int fixXYZ[numAtoms];
+            int fixB[numAtoms];
+            int fixOcc[numAtoms];
+            int setIsotropic[numAtoms];
+            int ierAtoms;
+            
+            lsq_get_atoms(numAtoms, atomNames, fixXYZ, fixB, fixOcc, setIsotropic, &ierAtoms);
+            
+            if (ierAtoms == 0) {
+                // Convert atom data to QVectors
+                for (int i = 0; i < numAtoms; ++i) {
+                    // Extract atom name (null-terminated string pointer)
+                    QString atomName = QString::fromUtf8(atomNames[i]);
+                    params.atomNames.append(atomName);
+                    params.fixXYZ.append(fixXYZ[i] != 0);
+                    params.fixB.append(fixB[i] != 0);
+                    params.fixOcc.append(fixOcc[i] != 0);
+                    params.setIsotropic.append(setIsotropic[i] != 0);
+                }
+            }
+        }
+        
         lsqDialog->setParameters(params);
         
         // 3. Execute the dialog (modal)
@@ -100,9 +148,24 @@ void MainWindow::onNewProject()
             }
             int refWeight = resultParams.refineWeightParams ? 1 : 0;
             
+            // Prepare atoms data
+            int numAtomsResult = resultParams.numAtoms;
+            int fixXYZ[numAtomsResult];
+            int fixB[numAtomsResult];
+            int fixOcc[numAtomsResult];
+            int setIsotropic[numAtomsResult];
+            
+            for (int i = 0; i < numAtomsResult; ++i) {
+                fixXYZ[i] = (i < resultParams.fixXYZ.size() && resultParams.fixXYZ[i]) ? 1 : 0;
+                fixB[i] = (i < resultParams.fixB.size() && resultParams.fixB[i]) ? 1 : 0;
+                fixOcc[i] = (i < resultParams.fixOcc.size() && resultParams.fixOcc[i]) ? 1 : 0;
+                setIsotropic[i] = (i < resultParams.setIsotropic.size() && resultParams.setIsotropic[i]) ? 1 : 0;
+            }
+            
             lsq_execute(refType, resultParams.dampingFactor,
                        resultParams.reflectionsCutoff, resultParams.numCycles,
-                       resultParams.weightingSchemeIndex, wParams, refWeight);
+                       resultParams.weightingSchemeIndex, wParams, refWeight,
+                       numAtomsResult, fixXYZ, fixB, fixOcc, setIsotropic);
             
             QMessageBox::information(this, "LSQ Complete", 
                                    "Least Squares Refinement calculation completed!\n"
