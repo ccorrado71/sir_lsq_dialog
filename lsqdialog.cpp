@@ -8,6 +8,140 @@
 #include <QHeaderView>
 #include <QTableWidgetItem>
 
+// Fortran subroutines declarations
+extern "C" {
+    void lsq_get_parameters(int* refinement_type, double* damping_factor,
+                           int* reflections_cutoff, int* num_cycles,
+                           int* weighting_scheme, double* weight_params,
+                           int* refine_weight, int* num_observations,
+                           double* percent_observations, int* num_weight_params,
+                           double* all_weight_params, int* num_atoms, int* ier);
+    
+    void lsq_get_atoms(int num_atoms, char** atom_names, int* fix_xyz,
+                      int* fix_b, int* fix_occ, int* set_isotropic, int* ier);
+    
+    void lsq_execute(int refinement_type, double damping_factor,
+                    int reflections_cutoff, int num_cycles,
+                    int weighting_scheme, double* weight_params,
+                    int refine_weight, int num_atoms, int* fix_xyz,
+                    int* fix_b, int* fix_occ, int* set_isotropic);
+}
+
+void LSQDialog::openLSQDialog()
+{
+    // 1. Call Fortran to get initial parameters
+    int refinementType;
+    double dampingFactor;
+    int reflectionsCutoff;
+    int numCycles;
+    int weightingScheme;
+    double weightParams[10];
+    int refineWeight;
+    int numObservations;
+    double percentObservations;
+    int numWeightParams[18];
+    double allWeightParams[18 * 10];  // 18 schemes x 10 parameters (column-major for Fortran)
+    int numAtoms;
+    int ier;
+    
+    lsq_get_parameters(&refinementType, &dampingFactor, &reflectionsCutoff,
+                      &numCycles, &weightingScheme, weightParams, &refineWeight,
+                      &numObservations, &percentObservations, numWeightParams,
+                      allWeightParams, &numAtoms, &ier);
+    
+    // Check for errors from Fortran
+    if (ier != 0) {
+        return;
+    }
+    
+    // 2. Set the dialog parameters with values from Fortran
+    LSQParameters params;
+    params.refinementType = static_cast<LSQParameters::RefinementType>(refinementType);
+    params.dampingFactor = dampingFactor;
+    params.reflectionsCutoff = reflectionsCutoff;
+    params.numCycles = numCycles;
+    params.weightingSchemeIndex = weightingScheme;
+    for (int i = 0; i < 10; ++i) {
+        params.weightParameters[i] = weightParams[i];
+    }
+    params.refineWeightParams = (refineWeight != 0);
+    params.numObservations = numObservations;
+    params.percentObservations = percentObservations;
+    for (int i = 0; i < 18; ++i) {
+        params.numWeightParamsPerScheme[i] = numWeightParams[i];
+    }
+    
+    // Copy all weight parameters from Fortran (column-major) to QVector
+    for (int scheme = 0; scheme < 18; ++scheme) {
+        for (int param = 0; param < 10; ++param) {
+            // Fortran stores as column-major: (param, scheme)
+            params.allWeightParams[scheme][param] = allWeightParams[param + scheme * 10];
+        }
+    }
+    
+    params.numAtoms = numAtoms;
+    
+    // Get atom data from Fortran
+    if (numAtoms > 0) {
+        QVector<char*> atomNames(numAtoms);
+        QVector<int> fixXYZ(numAtoms);
+        QVector<int> fixB(numAtoms);
+        QVector<int> fixOcc(numAtoms);
+        QVector<int> setIsotropic(numAtoms);
+        int ierAtoms;
+        
+        lsq_get_atoms(numAtoms, atomNames.data(), fixXYZ.data(), fixB.data(), fixOcc.data(), setIsotropic.data(), &ierAtoms);
+        
+        if (ierAtoms == 0) {
+            // Convert atom data to QVectors
+            for (int i = 0; i < numAtoms; ++i) {
+                // Extract atom name (null-terminated string pointer)
+                QString atomName = QString::fromUtf8(atomNames[i]);
+                params.atomNames.append(atomName);
+                params.fixXYZ.append(fixXYZ[i] != 0);
+                params.fixB.append(fixB[i] != 0);
+                params.fixOcc.append(fixOcc[i] != 0);
+                params.setIsotropic.append(setIsotropic[i] != 0);
+            }
+        }
+    }
+    
+    setParameters(params);
+    
+    // 3. Execute the dialog (modal)
+    if (exec() == QDialog::Accepted) {
+        // 4. Get parameters from dialog (only if Apply was pressed)
+        LSQParameters resultParams = getParameters();
+        
+        // 5. Pass parameters to Fortran for calculation
+        int refType = static_cast<int>(resultParams.refinementType);
+        double wParams[10];
+        for (int i = 0; i < 10; ++i) {
+            wParams[i] = resultParams.weightParameters[i];
+        }
+        int refWeight = resultParams.refineWeightParams ? 1 : 0;
+        
+        // Prepare atoms data
+        int numAtomsResult = resultParams.numAtoms;
+        QVector<int> fixXYZ(numAtomsResult);
+        QVector<int> fixB(numAtomsResult);
+        QVector<int> fixOcc(numAtomsResult);
+        QVector<int> setIsotropic(numAtomsResult);
+        
+        for (int i = 0; i < numAtomsResult; ++i) {
+            fixXYZ[i] = (i < resultParams.fixXYZ.size() && resultParams.fixXYZ[i]) ? 1 : 0;
+            fixB[i] = (i < resultParams.fixB.size() && resultParams.fixB[i]) ? 1 : 0;
+            fixOcc[i] = (i < resultParams.fixOcc.size() && resultParams.fixOcc[i]) ? 1 : 0;
+            setIsotropic[i] = (i < resultParams.setIsotropic.size() && resultParams.setIsotropic[i]) ? 1 : 0;
+        }
+        
+        lsq_execute(refType, resultParams.dampingFactor,
+                   resultParams.reflectionsCutoff, resultParams.numCycles,
+                   resultParams.weightingSchemeIndex, wParams, refWeight,
+                   numAtomsResult, fixXYZ.data(), fixB.data(), fixOcc.data(), setIsotropic.data());
+    }
+}
+
 LSQDialog::LSQDialog(QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::LSQDialog)
@@ -15,6 +149,7 @@ LSQDialog::LSQDialog(QWidget *parent)
     , numWeightParamsPerScheme(18, 0)
     , allWeightParams(18, QVector<double>(10, 0.0))
     , applyPressed(false)
+    , numObservations(0)
 {
     ui->setupUi(this);
     
@@ -55,6 +190,10 @@ LSQDialog::LSQDialog(QWidget *parent)
     connect(ui->modifyWeightButton, &QPushButton::clicked,
             this, &LSQDialog::onModifyWeightParameters);
     
+    // Connect weighting scheme combo change to update button/checkbox state
+    connect(ui->weightingSchemeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &LSQDialog::updateWeightParametersState);
+    
     // Setup atoms table
     setupAtomsTable();
 }
@@ -76,15 +215,9 @@ void LSQDialog::onModifyWeightParameters()
     // Get the current selected formula index
     int currentIndex = ui->weightingSchemeCombo->currentIndex();
     
-    // Check if this scheme has parameters to modify
+    // Get current scheme parameters
     if (currentIndex >= 0 && currentIndex < numWeightParamsPerScheme.size()) {
         int numParams = numWeightParamsPerScheme[currentIndex];
-        
-        if (numParams == 0) {
-            QMessageBox::information(this, "No Parameters", 
-                                   "This weighting scheme has no parameters to modify.");
-            return;
-        }
         
         // Get the current selected formula
         QString currentFormula = ui->weightingSchemeCombo->currentText();
@@ -135,14 +268,18 @@ void LSQDialog::setParameters(const LSQParameters &params)
     numWeightParamsPerScheme = params.numWeightParamsPerScheme;
     allWeightParams = params.allWeightParams;
     
+    // Update weight parameters button/checkbox state
+    updateWeightParametersState();
+    
+    // Store observations for ratio calculation
+    numObservations = params.numObservations;
+    
     // Set Observations & Parameters labels
     ui->observationsLabel->setText(QString("Observations: %1 (%2%)")
                                    .arg(params.numObservations)
                                    .arg(params.percentObservations, 0, 'f', 1));
-    ui->parametersLabel->setText(QString("Parameters: %1").arg(params.numParameters));
-    ui->ratioLabel->setText(QString("Ratio: %1").arg(params.ratio, 0, 'f', 2));
     
-    // Populate atoms table
+    // Populate atoms table (this will trigger updateObservationsParameters)
     populateAtomsTable(params);
 }
 
@@ -266,6 +403,12 @@ void LSQDialog::setupAtomsTable()
             this, [this](QTableWidgetItem *item) {
                 if (item && item->column() >= 1 && item->column() <= 4) {
                     updateHeaderCheckBox(item->column());
+                    // Update Parameters and Ratio when Fix B or Set Isotropic change
+                    if (item->column() == 2 || item->column() == 4) {
+                        updateObservationsParameters();
+                    } else if (item->column() == 1 || item->column() == 3) {
+                        updateObservationsParameters();
+                    }
                 }
             });
 }
@@ -333,6 +476,9 @@ void LSQDialog::populateAtomsTable(const LSQParameters &params)
     for (int col = 1; col < 5; ++col) {
         updateHeaderCheckBox(col);
     }
+    
+    // Update Parameters and Ratio labels
+    updateObservationsParameters();
 }
 
 void LSQDialog::onHeaderCheckBoxClicked(bool state, int column)
@@ -370,4 +516,82 @@ void LSQDialog::updateHeaderCheckBox(int column)
     }
     
     checkboxHeader->setChecked(column, allChecked);
+}
+
+void LSQDialog::updateWeightParametersState()
+{
+    int currentIndex = ui->weightingSchemeCombo->currentIndex();
+    bool hasParams = false;
+    
+    if (currentIndex >= 0 && currentIndex < numWeightParamsPerScheme.size()) {
+        hasParams = (numWeightParamsPerScheme[currentIndex] > 0);
+    }
+    
+    // Enable/disable the modify button and refine checkbox based on whether scheme has parameters
+    ui->modifyWeightButton->setEnabled(hasParams);
+    ui->refineWeightCheck->setEnabled(hasParams);
+    
+    // If disabled, uncheck the refine checkbox
+    if (!hasParams) {
+        ui->refineWeightCheck->setChecked(false);
+    }
+}
+
+int LSQDialog::calculateParameters() const
+{
+    int parameters = 0;
+    int rowCount = ui->atomsTable->rowCount();
+    
+    for (int row = 0; row < rowCount; ++row) {
+        // Count parameters for each atom based on checkboxes
+        
+        // XYZ coordinates: 3 parameters if NOT fixed
+        QTableWidgetItem *fixXYZItem = ui->atomsTable->item(row, 1);
+        if (!fixXYZItem || !fixXYZItem->data(Qt::EditRole).toBool()) {
+            parameters += 3;
+        }
+        
+        // B factor: depends on isotropic/anisotropic setting
+        // First check if B is fixed
+        QTableWidgetItem *fixBItem = ui->atomsTable->item(row, 2);
+        bool bIsFixed = fixBItem && fixBItem->data(Qt::EditRole).toBool();
+        
+        if (!bIsFixed) {
+            // B is not fixed, count depends on isotropic setting
+            QTableWidgetItem *setIsotropicItem = ui->atomsTable->item(row, 4);
+            bool isIsotropic = setIsotropicItem && setIsotropicItem->data(Qt::EditRole).toBool();
+            
+            if (isIsotropic) {
+                // Isotropic: 1 parameter (single B value)
+                parameters += 1;
+            } else {
+                // Anisotropic: 6 parameters (B11, B22, B33, B12, B13, B23)
+                parameters += 6;
+            }
+        }
+        
+        // Occupancy: 1 parameter if NOT fixed
+        QTableWidgetItem *fixOccItem = ui->atomsTable->item(row, 3);
+        if (!fixOccItem || !fixOccItem->data(Qt::EditRole).toBool()) {
+            parameters += 1;
+        }
+    }
+    
+    return parameters;
+}
+
+void LSQDialog::updateObservationsParameters()
+{
+    int parameters = calculateParameters();
+    
+    // Update Parameters label
+    ui->parametersLabel->setText(QString("Parameters: %1").arg(parameters));
+    
+    // Update Ratio label
+    if (parameters > 0 && numObservations > 0) {
+        double ratio = static_cast<double>(numObservations) / parameters;
+        ui->ratioLabel->setText(QString("Ratio: %1").arg(ratio, 0, 'f', 2));
+    } else {
+        ui->ratioLabel->setText(QString("Ratio: "));
+    }
 }

@@ -73,15 +73,21 @@ public:
     
     void setParameters(const LSQParameters &params);
     LSQParameters getParameters() const;
+    
+    void openLSQDialog();
 
 private slots:
     void onLSQRun();
     void onModifyWeightParameters();
+    void onHeaderCheckBoxClicked(bool state, int column);
+    void updateWeightParametersState();
 
 private:
     void setupAtomsTable();
     void populateAtomsTable(const LSQParameters &params);
     void updateHeaderCheckBox(int column);
+    int calculateParameters() const;
+    void updateObservationsParameters();
     
     Ui::LSQDialog *ui;
     QVector<double> weightParameters;
@@ -89,9 +95,7 @@ private:
     QVector<QVector<double>> allWeightParams;  // All parameters for all schemes [18][10]  
     bool applyPressed;
     CheckBoxHeader *checkboxHeader;
-
-private slots:
-    void onHeaderCheckBoxClicked(bool state, int column);
+    int numObservations;  // Store number of observations for calculations
 };
 
 #endif // LSQDIALOG_H

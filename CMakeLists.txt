@@ -26,7 +26,7 @@ set(PROJECT_SOURCES
     checkboxdelegate.h
     checkboxheader.cpp
     checkboxheader.h
-    lsq_fortran.f90
+    lsq_interop.f90
 )
 
 add_executable(${PROJECT_NAME} ${PROJECT_SOURCES})

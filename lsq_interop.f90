@@ -8,8 +8,7 @@ contains
     subroutine lsq_get_parameters(refinement_type, damping_factor, reflections_cutoff, &
                                    num_cycles, weighting_scheme, weight_params, &
                                    refine_weight, num_observations, percent_observations, &
-                                   num_parameters, ratio, num_weight_params, &
-                                   all_weight_params, num_atoms, ier) bind(C, name="lsq_get_parameters")
+                                   num_weight_params, all_weight_params, num_atoms, ier) bind(C, name="lsq_get_parameters")
         integer(c_int), intent(out) :: refinement_type
         real(c_double), intent(out) :: damping_factor
         integer(c_int), intent(out) :: reflections_cutoff
@@ -19,8 +18,6 @@ contains
         integer(c_int), intent(out) :: refine_weight
         integer(c_int), intent(out) :: num_observations
         real(c_double), intent(out) :: percent_observations
-        integer(c_int), intent(out) :: num_parameters
-        real(c_double), intent(out) :: ratio
         integer(c_int), intent(out) :: num_weight_params(18)
         real(c_double), intent(out) :: all_weight_params(10, 18)
         integer(c_int), intent(out) :: num_atoms
@@ -50,8 +47,6 @@ contains
         ! Observations & Parameters
         num_observations = 1234
         percent_observations = 92.5d0
-        num_parameters = 45
-        ratio = 27.42d0
         
         ! Number of weight parameters per scheme (18 schemes)
         num_weight_params(1) = 1    ! Scheme 1: needs P(1)
